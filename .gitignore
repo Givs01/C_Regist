@@ -21,5 +21,6 @@ staticfiles/
 # Logs
 *.log
 
+# dev folder
 dev/
 .dev/
