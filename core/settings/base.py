@@ -2,7 +2,6 @@
 
 from pathlib import Path
 import environ
-import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -78,16 +77,9 @@ TIME_ZONE = 'Asia/Kolkata'
 USE_I18N = True
 USE_TZ = True
 
-# settings.py
-
-# Make sure the STATIC_URL and STATIC_ROOT are set correctly
-STATIC_URL = '/static/'  # URL to access static files
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # Directory where collectstatic will store files
-
-# Add additional directories if you store static files in multiple locations
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),  # If you have static files in a folder called "static" in your project
-]
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [BASE_DIR / "static"]
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
