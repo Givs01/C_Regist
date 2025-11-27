@@ -15,11 +15,11 @@
   "author": "",
   "type": "commonjs",
   "main": "index.js",
-  "scripts": {
+"scripts": {
     "dev": "npx @tailwindcss/cli -i ./input.css -o ../static/css/main.css --watch",
     "prod": "npx @tailwindcss/cli -i ./input.css -o ../static/css/main.css --minify",
     "build": "npx @tailwindcss/cli -i ./input.css -o ../static/css/main.css --minify"
-  },
+},
   "dependencies": {
     "@tailwindcss/cli": "^4.1.13",
     "leaflet": "^1.9.4",
