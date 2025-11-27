@@ -22,6 +22,3 @@ staticfiles/
 # Logs
 *.log
 
-
-#dev
-dev/    
