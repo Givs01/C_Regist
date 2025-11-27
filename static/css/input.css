@@ -1,3 +1,14 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+/* Scan Django template files */
+@source "../templates/**/*.html";
+@source "../apps/**/templates/**/*.html";
+
+@theme {
+  --color-primary: #00a3ba;
+  --color-secondary: #023047;
+  --color-tertiary: #fb8500;
+  --color-quaternary: #ffb703;
+  --color-givs: #0090A3;
+}
+  
