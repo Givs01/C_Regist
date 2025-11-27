@@ -1,0 +1,118 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>WPA Home</title>
+
+    <!-- Tailwind + Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+</head>
+
+<body class="bg-gray-50 font-sans text-gray-800 pb-safe">
+
+    <!-- FULL HEIGHT WRAPPER -->
+    <div class="flex flex-col h-[100dvh]">
+
+        <!-- HEADER (fixed height) -->
+        <header class="bg-primary text-white sticky top-0 py-4 z-9999 shadow-md">
+            <div class="text-center">
+                <h1 class="text-lg md:text-xl font-semibold tracking-wide">
+                    Global South Academic Conclave
+                </h1>
+                <p class="text-xs md:text-sm opacity-90">Registration Module</p>
+            </div>
+        </header>
+
+        <!-- MAIN CONTENT (scrollable) -->
+        <main class="flex-1 p-0">
+            <!-- Fill available height without causing scroll -->
+            <div class="w-full h-full overflow-y-auto flex flex-col bg-gradient-to-tr from-slate-900 via-gray-800 to-gray-900 relative">
+
+                <!-- Decorative Glow Circles -->
+                <div class="absolute top-10 right-20 h-40 w-40 bg-indigo-500/30 rounded-full blur-3xl pointer-events-none"></div>
+                <div class="absolute bottom-10 left-20 h-40 w-40 bg-pink-500/30 rounded-full blur-3xl pointer-events-none"></div>
+                {% if messages %}
+                    <div id="msgContainer" class="p-4 space-y-2 w-full">
+                        {% for message in messages %}
+                            <div class="
+                                msgItem 
+                                px-4 py-3 rounded-lg text-sm font-medium
+                                {% if message.tags == 'error' %}
+                                    bg-red-500/20 text-red-300 border border-red-500/40
+                                {% elif message.tags == 'success' %}
+                                    bg-green-500/20 text-green-300 border border-green-500/40
+                                {% endif %}
+                            ">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                {% block content %}
+                {% endblock %}
+            </div>
+        </main>
+
+        <!-- FOOTER NAVIGATION (fixed height) -->
+        {% block endextra_nav %}
+        <nav class="bg-primary sticky bottom-0 z-9999 text-white py-2 shadow-lg border-t border-white/20">
+            <div class="flex justify-around">
+
+                <a href="{% url 'home' %}" class="flex flex-col items-center hover:opacity-90">
+                    <i class="fa-solid fa-house text-lg"></i>
+                    <span class="text-xs mt-1">Home</span>
+                </a>
+
+                <a href="{% url 'my_registrations' %}" class="flex flex-col items-center hover:opacity-90">
+                    <i class="fa-solid fa-list text-lg"></i>
+                    <span class="text-xs mt-1">Registrations</span>
+                </a>
+
+                <a href="{% url 'profile' %}" class="flex flex-col items-center hover:opacity-90">
+                    <i class="fa-solid fa-user text-lg"></i>
+                    <span class="text-xs mt-1">Profile</span>
+                </a>
+
+            </div>
+        </nav>
+        {% endblock %}
+
+    </div>
+    
+<script>
+setTimeout(() => {
+    const container = document.getElementById("msgContainer");
+    const items = document.querySelectorAll(".msgItem");
+
+    if (!container) return;
+
+    // Fade-out all messages
+    items.forEach(el => {
+        el.style.opacity = "0";
+        el.style.transition = "opacity 0.5s ease";
+    });
+
+    // Collapse container *in parallel*
+    container.style.transition = "all 0.5s ease";
+    container.style.opacity = "0";
+    container.style.maxHeight = "0";
+    container.style.padding = "0";
+    container.style.margin = "0";
+    container.style.overflow = "hidden";
+
+    // Remove from DOM after animation (optional)
+    setTimeout(() => container.remove(), 600);
+
+}, 3000);
+</script>
+
+
+</body>
+
+</html>

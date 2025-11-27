@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="w-full p-6 flex flex-col items-center relative">
+
+    <!-- Toggle Manual QR button -->
+    <button id="toggle-manual"
+        class="mb-6 text-xs px-3 py-1 bg-pink-400/20 hover:bg-pink-400/30 text-white
+               font-semibold rounded-full shadow-sm transition-all">
+        Enter QR Manually
+    </button>
+
+    <!-- QR Scanner Card -->
+    <div id="scanner-card"
+        class="rounded-2xl p-6 shadow-2xl max-w-xl w-full text-center
+               bg-black/20 border border-white/10">
+
+        <h2 class="text-lg font-semibold text-indigo-400 mb-4">Scan QR Code</h2>
+
+        <!-- Scanner Action Buttons -->
+        <div class="flex items-center justify-center gap-3 mb-4">
+            <button id="switch-camera"
+                    class="text-xs px-3 py-1 bg-indigo-500/20 hover:bg-indigo-500/30 text-white rounded-full shadow-sm">
+                Switch Camera
+            </button>
+            <button id="toggle-torch"
+                    class="text-xs px-3 py-1 bg-yellow-500/20 hover:bg-yellow-500/30 text-white rounded-full shadow-sm">
+                Torch
+            </button>
+            <button id="manual-focus"
+                    class="text-xs px-3 py-1 bg-green-500/20 hover:bg-green-500/30 text-white rounded-full shadow-sm">
+                Focus
+            </button>
+        </div>
+
+        <!-- QR Reader -->
+        <div id="qr-reader" style="
+            width: 100%;
+            height: 320px;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        "></div>
+
+        <!-- Focus overlay -->
+        <div id="focus-overlay" class="pointer-events-none" style="
+            position: absolute;
+            width: 100%;
+            height: 320px;
+            max-width: 420px;
+            margin-top: -316px;
+            display: none;
+        ">
+            <div id="focus-point"
+                 style="position: absolute; width: 64px; height: 64px; left:50%; top:50%;
+                        transform: translate(-50%,-50%); border-radius: 6px;
+                        border: 2px solid rgba(34,197,94,0.9);
+                        box-shadow: 0 0 12px rgba(34,197,94,0.35);"></div>
+        </div>
+
+        <p class="text-gray-300 text-xs mt-3">Align QR inside the frame</p>
+    </div>
+
+    <!-- Manual Form -->
+    <div id="manual-form"
+        class="hidden bg-white/10 border border-white/10 rounded-2xl
+               p-10 shadow-2xl max-w-xl w-full text-center">
+
+        <p class="text-gray-400 text-xs mb-2">Enter QR code manually</p>
+
+        <form id="manual-submit-form" method="POST" action="{% url 'qr_register' %}">
+            {% csrf_token %}
+            <input type="text" id="manual-qr" name="qr_code"
+                class="w-full max-w-md px-4 py-2 rounded-lg bg-white/10 text-white
+                       border border-gray-300 placeholder-gray-400 mb-4 focus:ring-2
+                       focus:ring-indigo-500"
+                placeholder="Enter QR Code">
+            <button type="submit"
+                class="w-full max-w-md bg-indigo-400/20 hover:bg-indigo-400/30
+                       text-white font-semibold py-2 rounded-xl shadow-lg">
+                Register
+            </button>
+        </form>
+    </div>
+
+    <!-- Auto Submit Scanner Form (hidden) -->
+    <form id="scanner-submit-form" method="POST" action="{% url 'qr_register' %}">
+        {% csrf_token %}
+        <input type="hidden" name="qr_code" id="scanner-qr-input">
+    </form>
+
+</div>
+
+<!-- QR Library -->
+<script src="https://unpkg.com/html5-qrcode@2.3.10/minified/html5-qrcode.min.js"></script>
+
+<script>
+// DOM
+const toggleBtn = document.getElementById("toggle-manual");
+const manualForm = document.getElementById("manual-form");
+const scannerCard = document.getElementById("scanner-card");
+const scannerElement = document.getElementById("qr-reader");
+const scannerInput = document.getElementById("scanner-qr-input");
+const switchBtn = document.getElementById("switch-camera");
+const torchBtn = document.getElementById("toggle-torch");
+const focusBtn = document.getElementById("manual-focus");
+const focusOverlay = document.getElementById("focus-overlay");
+const focusPoint = document.getElementById("focus-point");
+
+// State
+let scanner = null;
+let active = false;
+let currentCameraIndex = 0;
+let cameraList = [];
+let currentTrack = null;
+let torchOn = false;
+
+// CSRF helper
+function getToken() {
+    return document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+}
+
+// Camera init
+async function initCameras() {
+    try {
+        cameraList = await Html5Qrcode.getCameras();
+        if (!cameraList.length) alert("No camera found!");
+        cameraList.forEach((c,i)=>{
+            if(c.label.toLowerCase().includes("back")) currentCameraIndex=i;
+        });
+    } catch (e) { console.warn(e); }
+}
+
+// Start scanner
+async function startScanner() {
+    if (active) return;
+    if (!cameraList.length) await initCameras();
+
+    const cam = cameraList[currentCameraIndex].id;
+    scanner = new Html5Qrcode("qr-reader");
+
+    scanner.start(
+        cam,
+        { fps: 10, qrbox: { width: 250, height: 250 }},
+        text=>submitCode(text),
+        err=>console.debug(err)
+    ).then(()=>{
+        active=true;
+        const video=document.querySelector("#qr-reader video");
+        if(video?.srcObject) currentTrack=video.srcObject.getVideoTracks()[0];
+    }).catch(e=>alert(e));
+}
+
+// Stop
+function stopScanner(){
+    if(!scanner||!active) return;
+    scanner.stop().then(()=>{
+        active=false;
+        scanner.clear();
+        currentTrack=null;
+    });
+}
+
+// Camera Switch
+switchBtn.onclick=()=>{
+    if(!cameraList.length) return;
+    currentCameraIndex=(currentCameraIndex+1)%cameraList.length;
+    stopScanner();
+    setTimeout(startScanner,300);
+};
+
+// Torch
+torchBtn.onclick=()=>{
+    if(!currentTrack) return alert("Start camera first");
+    const caps=currentTrack.getCapabilities?.();
+    if(!caps?.torch) return alert("Torch not supported");
+    torchOn=!torchOn;
+    currentTrack.applyConstraints({advanced:[{torch:torchOn}]});
+};
+
+// Tap Focus
+let waitingFocus=false;
+focusBtn.onclick=()=>{
+    if(!currentTrack) return;
+    waitingFocus=true;
+    focusOverlay.style.display="block";
+    setTimeout(()=>{
+        if(waitingFocus){
+            waitingFocus=false;
+            focusOverlay.style.display="none";
+        }
+    },5000);
+};
+
+scannerElement.onclick=(e)=>{
+    if(!waitingFocus) return;
+    waitingFocus=false;
+    focusOverlay.style.display="none";
+    const vrect=scannerElement.getBoundingClientRect();
+    const x=(e.clientX-vrect.left)/vrect.width;
+    const y=(e.clientY-vrect.top)/vrect.height;
+    currentTrack?.applyConstraints?.({advanced:[{focusMode:"single-shot"}]});
+};
+
+// Submit code
+async function submitCode(code){
+    stopScanner();
+    scannerInput.value=code;
+    const url=document.getElementById("scanner-submit-form").action;
+
+    try{
+        const res=await fetch(url,{
+            method:"POST",
+            headers:{
+                "X-CSRFToken":getToken(),
+                "Content-Type":"application/x-www-form-urlencoded"
+            },
+            body:`qr_code=${encodeURIComponent(code)}`,
+            credentials:"same-origin"
+        });
+
+        if(res.ok){
+            const json=await res.json().catch(()=>({}));
+            if(json?.redirect) return location.href=json.redirect;
+            alert(json?.message ?? "Success");
+            return;
+        }
+    }catch(e){
+        console.warn(e);
+    }
+    document.getElementById("scanner-submit-form").submit();
+}
+
+// Manual toggle
+toggleBtn.onclick=()=>{
+    const manual=manualForm.classList.contains("hidden");
+    if(manual){
+        manualForm.classList.remove("hidden");
+        scannerCard.classList.add("hidden");
+        toggleBtn.textContent="Back to QR Scan";
+        stopScanner();
+    }else{
+        scannerCard.classList.remove("hidden");
+        manualForm.classList.add("hidden");
+        toggleBtn.textContent="Enter QR Manually";
+        startScanner();
+    }
+};
+
+// iOS user gesture unlock
+document.addEventListener("click", initCameras, {once:true});
+
+// Autostart
+window.onload=()=>setTimeout(startScanner,600);
+</script>
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- CONTENT WRAPPER -->
+<div class="w-full p-4 bg-gradient-to-br from-slate-900 via-gray-800 to-gray-900">
+
+    <!-- SUMMARY CARDS -->
+    <div class="grid grid-cols-2 gap-4 mb-6">
+
+        <div class="bg-white/10 border border-white/10 rounded-xl p-5 shadow-lg
+                    backdrop-blur-xl hover:scale-[1.02] transition transform text-center">
+            <p class="text-3xl font-bold text-indigo-400">{{ qr_counts }}</p>
+            <p class="text-sm text-gray-300 mt-1">QR Registration</p>
+        </div>
+
+        <div class="bg-white/10 border border-white/10 rounded-xl p-5 shadow-lg
+                    backdrop-blur-xl hover:scale-[1.02] transition transform text-center">
+            <p class="text-3xl font-bold text-pink-400">{{ onspot_counts }}</p>
+            <p class="text-sm text-gray-300 mt-1">On-spot Registration</p>
+        </div>
+
+    </div>
+
+    <!-- Registrations -->
+    <div class="bg-white/10 border border-white/10 backdrop-blur-xl 
+                rounded-2xl p-6 shadow-xl mb-6">
+        <h3 class="text-lg font-semibold mb-4 text-indigo-300">Latest Registrations (last five entries)</h3>
+
+        {% if last_reg %}
+            <div class="space-y-3">
+                {% for u in last_reg %}
+                <div class="relative bg-white/5 p-4 border border-white/10 rounded-xl 
+                            hover:bg-white/10 transition overflow-hidden">
+
+                    <!-- Mode tag (responsive) -->
+                    {% if u.mode == 'onspot' %}
+                    <span class="absolute top-2 right-2 bg-pink-500 text-white text-xs sm:text-[10px] md:text-xs px-2 py-0.5 rounded-full shadow-md">
+                        On-spot
+                    </span>
+                    {% elif u.mode == 'qr' %}
+                    <span class="absolute top-2 right-2 bg-indigo-500 text-white text-xs sm:text-[10px] md:text-xs px-2 py-0.5 rounded-full shadow-md">
+                        QR
+                    </span>
+                    {% endif %}
+
+                    <p class="font-semibold text-gray-200 text-sm">
+                        {{ u.name|title }} 
+                        <span class="text-xs font-normal text-gray-400">| {{ u.contact }}</span>
+                    </p>
+
+                    <p class="text-xs text-gray-400 mt-1">Email: {{ u.email }}</p>
+
+                    <p class="text-xs text-gray-400 mt-1">{{ u.timestamp|date:"d M Y, h:i A" }}</p>
+
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-gray-400 text-sm">No recent registrations.</p>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

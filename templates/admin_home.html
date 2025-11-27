@@ -1,0 +1,81 @@
+{% extends "base_admin.html" %}
+
+{% block content %}
+
+<!-- CONTENT WRAPPER -->
+<div class="w-full p-4 bg-gradient-to-br from-slate-900 via-gray-800 to-gray-900">
+
+    {% if is_admin %}
+    <!-- =================== ADMIN VIEW =================== -->
+
+    <!-- SUMMARY CARDS -->
+    <div class="grid grid-cols-2 gap-4 mb-6">
+
+        <div class="bg-white/10 border border-white/10 rounded-xl p-5 shadow-lg
+                    backdrop-blur-xl hover:scale-[1.02] transition transform text-center">
+            <p class="text-3xl font-bold text-indigo-400">{{ total_users }}</p>
+            <p class="text-sm text-gray-300 mt-1">Registered Users</p>
+        </div>
+
+        <div class="bg-white/10 border border-white/10 rounded-xl p-5 shadow-lg
+                    backdrop-blur-xl hover:scale-[1.02] transition transform text-center">
+            <p class="text-3xl font-bold text-pink-400">{{ desk_counts|length }}</p>
+            <p class="text-sm text-gray-300 mt-1">Active Desks</p>
+        </div>
+
+    </div>
+
+    <!-- DESK SUMMARY -->
+    <div class="bg-white/10 border border-white/10 backdrop-blur-xl 
+                rounded-2xl p-6 shadow-xl mb-6">
+        <h3 class="text-lg font-semibold mb-4 text-indigo-300">Desk-wise User Summary</h3>
+
+        {% if desk_counts %}
+            <div class="space-y-2">
+                {% for d in desk_counts %}
+                <div class="flex justify-between text-sm bg-white/5 p-3 border border-white/10 
+                            rounded-xl text-gray-300 hover:bg-white/10 transition">
+                    <span>{{ d.assignDesk }}</span>
+                    <span class="font-semibold">{{ d.count }} Users</span>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-gray-400 text-sm">No desk data available.</p>
+        {% endif %}
+    </div>
+
+    <!-- LAST 3 USERS -->
+    <div class="bg-white/10 border border-white/10 backdrop-blur-xl 
+                rounded-2xl p-6 shadow-xl mb-6">
+        <h3 class="text-lg font-semibold mb-4 text-indigo-300">Latest Users</h3>
+
+        {% if last_three %}
+            <div class="space-y-3">
+                {% for u in last_three %}
+                <div class="bg-white/5 p-4 border border-white/10 rounded-xl 
+                            hover:bg-white/10 transition">
+
+                    <p class="font-semibold text-gray-200 text-sm">
+                        {{ u.name|title }} 
+                        <span class="text-xs font-normal text-gray-400"> | {{ u.userId }}</span>
+                    </p>
+
+                    <p class="text-xs text-gray-400 mt-1">
+                        Desk: {{ u.assignDesk }} |
+                        <span>{{ u.created_at|date:"d M Y, h:i A" }}</span>
+                    </p>
+
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-gray-400 text-sm">No recent users.</p>
+        {% endif %}
+    </div>
+
+    {% endif %}
+
+</div>
+
+{% endblock %}
