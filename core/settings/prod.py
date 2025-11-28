@@ -6,7 +6,7 @@ import os
 DEBUG = False
 
 # Use env ALLOWED_HOSTS or fallback (must set ALLOWED_HOSTS in Render)
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["c-regist.onrender.com"])
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["c-regist.onrender.com", "127.0.0.1", "localhost"])
 
 # Database: prefer DATABASE_URL from env (Render provides this)
 DATABASES = {
@@ -29,7 +29,7 @@ STATIC_URL = "/static/"
 SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
-SECURE_HSTS_SECONDS = 60  # set higher (e.g. 3600 or 31536000) after testing
+SECURE_HSTS_SECONDS = 3600  
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 
