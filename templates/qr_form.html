@@ -12,17 +12,14 @@
 
     <!-- Scanner Card -->
     <div id="scanner-card"
-        class="bg-black/40 border border-white/10 rounded-2xl p-4 shadow-lg max-w-md w-full">
+         class="bg-black/40 border border-white/10 rounded-2xl p-4 shadow-lg max-w-md w-full">
         <div class="relative w-full rounded-xl overflow-hidden mx-auto"
              style="aspect-ratio: 1; background:#000">
             <div id="qr-container"></div>
 
-            <!-- Canvas Overlay (Scanner Window) -->
             <canvas id="overlay-canvas"
-                class="absolute inset-0 pointer-events-none"></canvas>
+                    class="absolute inset-0 pointer-events-none"></canvas>
         </div>
-
-
 
         <p id="msg" class="text-gray-400 text-xs mt-2 text-center">
             Allow camera access to begin scanning
@@ -30,12 +27,11 @@
 
         <div class="flex items-center justify-center gap-3 mt-6">
             <button id="switch-camera"
-                class="text-xs px-3 py-2 rounded-full text-white bg-secondary">
+                    class="text-xs px-3 py-2 rounded-full text-white bg-secondary">
                 Switch Camera
             </button>
-            <!-- Toggle Button -->
             <button id="toggle-mode"
-                class="text-xs px-3 py-2 rounded-full text-white bg-secondary">
+                    class="text-xs px-3 py-2 rounded-full text-white bg-secondary">
                 Enter QR Manually
             </button>
         </div>
@@ -43,24 +39,22 @@
 
     <!-- Manual Entry -->
     <div id="manual-card"
-        class="hidden bg-black/20 border border-white/10 rounded-2xl p-6 shadow-lg
-        max-w-md w-full flex flex-col items-center justify-center">
+         class="hidden bg-black/20 border border-white/10 rounded-2xl p-6 shadow-lg
+                max-w-md w-full flex flex-col items-center justify-center">
 
         <form id="manual-form" method="POST" action="{% url 'qr_register' %}"
-            class="w-full flex flex-col items-center justify-center gap-4">
+              class="w-full flex flex-col items-center justify-center gap-4">
             {% csrf_token %}
 
             <input type="text" name="qr_code"
-                class="w-2/3 text-sm px-3 py-2 rounded-lg bg-black/30 border border-gray-600 text-white"
-                placeholder="Enter QR Code">
+                   class="w-2/3 text-sm px-3 py-2 rounded-lg bg-black/30 border border-gray-600 text-white"
+                   placeholder="Enter QR Code">
 
             <button class="w-1/2 bg-indigo-500 hover:bg-indigo-600 py-2 rounded-lg text-white font-medium shadow">
                 Submit
             </button>
         </form>
-
     </div>
-
 
     <!-- Auto Submit -->
     <form id="auto-form" method="POST" action="{% url 'qr_register' %}">
@@ -70,86 +64,130 @@
 
 </div>
 
-<!-- HTML5 QR Code Library -->
+<!-- Confirmation Modal -->
+<div id="confirm-modal"
+     class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-50">
+    <div class="bg-gray-900 border border-white/10 rounded-xl p-6 max-w-xs w-full text-center animate-fadeIn">
+        <p class="text-white text-sm mb-2">Scanned Code:</p>
+        <p id="confirm-text" class="text-indigo-400 font-bold text-lg break-words"></p>
+
+        <div class="flex justify-center gap-3 mt-6">
+            <button id="confirm-accept"
+                    class="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs">
+                Accept
+            </button>
+            <button id="confirm-reject"
+                    class="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs">
+                Reject
+            </button>
+        </div>
+    </div>
+</div>
+
 <script src="https://unpkg.com/html5-qrcode"></script>
 
 <script>
 const toggleBtn = document.getElementById("toggle-mode");
 const scannerCard = document.getElementById("scanner-card");
 const manualCard = document.getElementById("manual-card");
-const qrContainer = document.getElementById("qr-container");
-const overlayCanvas = document.getElementById("overlay-canvas");
 const msg = document.getElementById("msg");
+const overlayCanvas = document.getElementById("overlay-canvas");
 
 let scanner = null;
 let cameras = [];
 let currentCam = 0;
 let track = null;
-let torch = false;
 
 function drawBox() {
     const ctx = overlayCanvas.getContext("2d");
+
     const w = overlayCanvas.width;
     const h = overlayCanvas.height;
-    ctx.clearRect(0, 0, w, h);
 
+    ctx.clearRect(0, 0, w, h);
     ctx.strokeStyle = "#00eaff";
     ctx.lineWidth = 3;
-    const size = Math.min(w, h) * 0.7;
+
+    // 70% of the shortest side
+    const size = Math.min(w, h) * 0.65;
+
     const x = (w - size) / 2;
     const y = (h - size) / 2;
+
     ctx.strokeRect(x, y, size, size);
 }
+
 
 async function start() {
     try {
         await navigator.mediaDevices.getUserMedia({ video: true });
         cameras = await Html5Qrcode.getCameras();
-        if (!cameras.length) return alert("No camera found!");
+        if (!cameras.length) return alert("No camera found");
 
         const back = cameras.findIndex(c => c.label.toLowerCase().includes("back"));
         if (back !== -1) currentCam = back;
 
         scanner = new Html5Qrcode("qr-container");
 
-        scanner.start(
+        await scanner.start(
             cameras[currentCam].id,
             { fps: 10 },
-            qrSuccess,
+            qrDetected,
             () => {}
-        ).then(() => {
-            msg.innerText = "Scanning...";
-            const video = document.querySelector("#qr-container video");
-            track = video.srcObject.getVideoTracks()[0];
+        );
 
-            overlayCanvas.width = video.clientWidth;
-            overlayCanvas.height = video.clientHeight;
+        msg.innerText = "Scanning...";
+        const video = document.querySelector("#qr-container video");
+        track = video.srcObject.getVideoTracks()[0];
+
+        const updateCanvasSize = () => {
+            const rect = video.getBoundingClientRect();
+            overlayCanvas.width = rect.width;
+            overlayCanvas.height = rect.height;
             drawBox();
-        });
+        };
+
+        // Wait for video to fully render
+        setTimeout(updateCanvasSize, 300);
+        window.addEventListener("resize", updateCanvasSize);
+
     } catch (e) {
-        console.log(e);
         msg.innerText = "Camera access denied";
     }
 }
 
 function stop() {
     if (!scanner) return;
-    scanner.stop().then(() => scanner.clear());
+    return scanner.stop().then(() => scanner.clear());
 }
 
-function qrSuccess(text) {
+function qrDetected(text) {
     stop();
-    document.getElementById("qr_value").value = text;
-    document.getElementById("auto-form").submit();
+    showConfirmation(text);
 }
+
+function showConfirmation(text) {
+    document.getElementById("qr_value").value = text;
+    document.getElementById("confirm-text").innerText = text;
+    document.getElementById("confirm-modal").classList.remove("hidden");
+}
+
+document.getElementById("confirm-accept").onclick = () => {
+    document.getElementById("confirm-modal").classList.add("hidden");
+    document.getElementById("auto-form").submit();
+};
+
+document.getElementById("confirm-reject").onclick = () => {
+    document.getElementById("confirm-modal").classList.add("hidden");
+    msg.innerText = "Scanning...";
+    start();
+};
 
 document.getElementById("switch-camera").onclick = () => {
     if (!cameras.length) return;
     currentCam = (currentCam + 1) % cameras.length;
-    stop();
-    setTimeout(start, 300);
+    stop().then(() => setTimeout(start, 300));
 };
-
 
 toggleBtn.onclick = () => {
     if (manualCard.classList.contains("hidden")) {
@@ -168,4 +206,19 @@ toggleBtn.onclick = () => {
 window.onload = () => setTimeout(start, 500);
 </script>
 
+<style>
+    #qr-container video {
+    object-fit: cover !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
+    }
+    .animate-fadeIn {
+        animation: fadeIn .2s ease-out;
+    }
+</style>
 {% endblock %}
