@@ -1,0 +1,18 @@
+{% extends "base_admin.html" %}
+{% block content %}
+
+<div class="flex flex-col items-center w-full p-10">
+    <h2 class="text-xl text-white font-bold mb-4">Upload Pre-Registration CSV</h2>
+
+    <form action="" enctype="multipart/form-data" method="POST"
+          class="bg-black/40 p-6 rounded-xl shadow max-w-md w-full border border-white/10">
+        {% csrf_token %}
+        <input type="file" name="file" accept=".csv"
+               class="w-full text-sm p-2 bg-black/30 border border-gray-500 text-white rounded-lg"/>
+        <button class="w-1/2 mt-4 bg-indigo-500 hover:bg-indigo-600 text-white p-2 rounded-lg">
+            Upload CSV
+        </button>
+    </form>
+</div>
+
+{% endblock %}

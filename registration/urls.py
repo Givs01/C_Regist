@@ -16,6 +16,7 @@ Including another URLconf
 """
 from django.urls import path
 from registration import views
+
 urlpatterns = [
     path("", views.home, name='home'),
     path("login/", views.login_view, name="login"),
@@ -28,5 +29,8 @@ urlpatterns = [
     path("qr/", views.qr, name="qr"),
     path("qr_register/", views.qr_register, name="qr_register"),
     path("my_registrations/", views.my_registrations, name="my_registrations"),
+    path("upload-prereg/", views.upload_prereg_csv, name="upload_prereg_csv")
+
+
 
 ]

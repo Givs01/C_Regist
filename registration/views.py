@@ -7,9 +7,20 @@ from django.contrib import messages
 from datetime import datetime
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
-from .models import Participant
 from django.db.models import Count
-from .models import UsersData, Participant
+from .models import Participant, UsersData
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+from .models import PreRegistration, Participant, QRRegistration
+import csv
+import io
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect
+from .models import PreRegistration
+
 
 
 
@@ -265,29 +276,63 @@ def qr(request):
     return render(request, "qr_form.html")
 
 
+
+
+
 @login_required
 def qr_register(request):
     if request.method == "POST":
         qr_code = request.POST.get("qr_code", "").strip()
 
         if not qr_code:
-            messages.error(request, "QR Code not received!")
-            return redirect("qr_register")
+            messages.error(request, "QR Code not detected!")
+            return redirect("qr")
 
-        # Check if qr_code is numeric
-        if not qr_code.isdigit():
-            messages.error(request, "Invalid QR Code format!")
-            return redirect("qr_register")
-
+        # Check QR exists in pre-registered list
         try:
-            participant = Participant.objects.get(id=int(qr_code))
-            messages.success(request, f"{participant.name} - registered successfully!")
-        except Participant.DoesNotExist:
-            messages.error(request, "Participant not found for this QR code!")
+            pre = PreRegistration.objects.get(qr_code=qr_code)
+        except PreRegistration.DoesNotExist:
+            messages.error(request, "QR not found! Please do On-Spot registration.")
+            return redirect("onspot")
 
-        return redirect("qr_register")
+        # Prevent duplicate QR scan
+        if Participant.objects.filter(email=pre.email).exists():
+            messages.warning(request, f"{pre.name} already registered!")
+            return redirect("onspot")
 
-    return render(request, "qr_form.html")
+
+        
+        try:
+            custom_user = UsersData.objects.get(userId=request.user.username)
+            desk = custom_user.assignDesk
+        except UsersData.DoesNotExist:
+            desk = None
+
+        # Log QR scan
+        QRRegistration.objects.create(
+            qr_code=qr_code,
+            scanned_by=request.user,
+            desk_name=desk,
+            scanned_at=timezone.now()
+        )
+
+        # Add to main participants table
+        Participant.objects.create(
+            name=pre.name,
+            email=pre.email,
+            contact=pre.contact,
+            organisation=pre.organisation,
+            country=pre.country,
+            registered_by=request.user,
+            registration_desk=desk,
+            mode="qr",
+        )
+
+        messages.success(request, f"Welcome {pre.name}! Registration completed.")
+        return redirect("qr")
+
+    return redirect("qr")
+
 
 
 
@@ -314,3 +359,60 @@ def my_registrations(request):
     }
 
     return render(request, 'my_registrations.html', context)
+
+
+
+# ----------------------------
+# csv upload
+# ----------------------------
+
+@login_required
+def upload_prereg_csv(request):
+    if request.method == "POST":
+        csv_file = request.FILES.get("file")
+
+        if not csv_file:
+            messages.error(request, "Please upload a CSV file")
+            return redirect("upload_prereg_csv")
+
+        if not csv_file.name.endswith(".csv"):
+            messages.error(request, "File must be CSV format")
+            return redirect("upload_prereg_csv")
+
+        try:
+            data = csv_file.read().decode("utf-8")
+            reader = csv.DictReader(io.StringIO(data))
+
+            required_headers = {"qr_code", "name", "email", "contact", "organisation", "country"}
+            if not required_headers.issubset(set(reader.fieldnames)):
+                messages.error(request, "Invalid CSV headers!")
+                return redirect("upload_prereg_csv")
+
+            # Clear existing data
+            PreRegistration.objects.all().delete()
+
+            count = 0
+            for row in reader:
+                if not row["qr_code"].strip():
+                    continue
+
+                PreRegistration.objects.update_or_create(
+                    qr_code=row["qr_code"].strip(),
+                    defaults={
+                        "name": row.get("name", "").strip(),
+                        "email": row.get("email", "").strip(),
+                        "contact": row.get("contact", "").strip(),
+                        "organisation": row.get("organisation", "").strip(),
+                        "country": row.get("country", "").strip() or "India",
+                    }
+                )
+                count += 1
+
+            messages.success(request, f"Successfully imported {count} preregistration records!")
+            return redirect("upload_prereg_csv")
+
+        except Exception as e:
+            messages.error(request, f"Error reading CSV: {e}")
+            return redirect("upload_prereg_csv")
+
+    return render(request, "upload_prereg_csv.html")

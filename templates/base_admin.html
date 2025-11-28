@@ -69,9 +69,13 @@
                     <span class="text-xs mt-1">Home</span>
                 </a>
 
+                <a href="{% url 'upload_prereg_csv' %}" class="flex flex-col items-center hover:opacity-90">
+                    <i class="fa-solid fa-upload text-lg"></i>
+                    <span class="text-xs mt-1">upload</span>
+                </a>
                 <a href="{% url 'add_user' %}" class="flex flex-col items-center hover:opacity-90">
                     <i class="fa-solid fa-plus text-lg"></i>
-                    <span class="text-xs mt-1">Add</span>
+                    <span class="text-xs mt-1">Add User</span>
                 </a>
 
                 <a href="{% url 'users_list' %}" class="flex flex-col items-center hover:opacity-90">

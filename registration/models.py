@@ -1,8 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.contrib.auth.hashers import make_password
-from django.db import models
-from django.contrib.auth.models import User
 
 
 # ----------------------------
@@ -37,6 +35,20 @@ class UsersData(models.Model):
 # ----------------------------
 # QR Scan
 # ----------------------------
+class QRRegistration(models.Model):
+    qr_code = models.CharField(max_length=100, unique=True)
+
+    scanned_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, related_name="qr_scans"
+    )
+    scanned_at = models.DateTimeField(auto_now_add=True)
+
+    desk_name = models.CharField(max_length=50)
+
+    def __str__(self):
+        return f"{self.qr_code} scanned by {self.scanned_by}"
+
+        
 
 
 # ----------------------------
@@ -63,3 +75,25 @@ class Participant(models.Model):
 
     def __str__(self):
         return f"{self.name} - {self.email}"
+
+
+
+
+
+# ----------------------------
+# Pre-Registration
+# ----------------------------
+
+class PreRegistration(models.Model):
+    qr_code = models.CharField(max_length=100, unique=True)
+
+    name = models.CharField(max_length=150)
+    email = models.EmailField()
+    contact = models.CharField(max_length=20)
+    organisation = models.CharField(max_length=200, blank=True, null=True)
+    country = models.CharField(max_length=100, default="India")
+
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.name} - {self.qr_code}"
