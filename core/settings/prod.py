@@ -1,51 +1,47 @@
-# core/settings/prod.py
+from .base import *  # noqa: F401,F403
+import dj_database_url
+import os
 
-from .base import *
-
-# Production settings
+# Keep base DEBUG False by default (base.py should set DEBUG=False)
 DEBUG = False
-TEMPLATES[0]['OPTIONS']['debug'] = DEBUG
 
+# Use env ALLOWED_HOSTS or fallback (must set ALLOWED_HOSTS in Render)
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["c-regist.onrender.com"])
 
-# Use SQLite for production (same as dev, for simplicity in this case)
-DATABASES['default'] = {
-    'ENGINE': 'django.db.backends.sqlite3',
-    'NAME': BASE_DIR / 'db.sqlite3',  # SQLite database in the project directory
+# Database: prefer DATABASE_URL from env (Render provides this)
+DATABASES = {
+    "default": dj_database_url.config(
+        default=env("DATABASE_URL", default=None),
+        conn_max_age=600,
+        ssl_require=True,
+    )
 }
 
-# Static and media files setup
-STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / "staticfiles"  # Collected static files are stored here
+# WhiteNoise - efficient static file serving
+MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'  # User-uploaded files will be stored here
+# Ensure collectstatic works with ManifestStaticFilesStorage
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STATIC_URL = "/static/"
 
-# Security settings
-CSRF_COOKIE_SECURE = True
-SESSION_COOKIE_SECURE = True
+# Security recommendations
 SECURE_SSL_REDIRECT = True
-SECURE_HSTS_SECONDS = 31536000
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SECURE_HSTS_SECONDS = 60  # set higher (e.g. 3600 or 31536000) after testing
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_CONTENT_TYPE_NOSNIFF = True
-X_FRAME_OPTIONS = 'DENY'
+SECURE_HSTS_PRELOAD = True
 
-# Logging setup (optional, can be used for production logging)
+# Trust Render's HTTPS termination - configure CSRF trusted origins from ALLOWED_HOSTS
+CSRF_TRUSTED_ORIGINS = [f"https://{host}" for host in ALLOWED_HOSTS]
+
+# Logging (basic)
 LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'file': {
-            'level': 'ERROR',
-            'class': 'logging.FileHandler',
-            'filename': BASE_DIR / 'logs/django_error.log',
-        },
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {"class": "logging.StreamHandler"},
     },
-    'loggers': {
-        'django': {
-            'handlers': ['file'],
-            'level': 'ERROR',
-            'propagate': True,
-        },
-    },
+    "root": {"handlers": ["console"], "level": "INFO"},
 }
