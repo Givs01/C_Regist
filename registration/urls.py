@@ -29,7 +29,8 @@ urlpatterns = [
     path("qr/", views.qr, name="qr"),
     path("qr_register/", views.qr_register, name="qr_register"),
     path("my_registrations/", views.my_registrations, name="my_registrations"),
-    path("upload-prereg/", views.upload_prereg_csv, name="upload_prereg_csv")
+    path("upload-prereg/", views.upload_prereg_csv, name="upload_prereg_csv"),
+    path("admin_reports/", views.admin_reports, name="admin_reports"),
 
 
 

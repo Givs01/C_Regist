@@ -29,30 +29,7 @@
                     class="text-xs px-3 py-2 rounded-full text-white bg-secondary">
                 Switch Camera
             </button>
-            <button id="toggle-mode"
-                    class="text-xs px-3 py-2 rounded-full text-white bg-secondary">
-                Enter QR Manually
-            </button>
         </div>
-    </div>
-
-    <!-- Manual Entry -->
-    <div id="manual-card"
-         class="hidden bg-black/20 border border-white/10 rounded-2xl p-6 shadow-lg
-                max-w-md w-full flex flex-col items-center justify-center">
-
-        <form id="manual-form" method="POST" action="{% url 'qr_register' %}"
-              class="w-full flex flex-col items-center justify-center gap-4">
-            {% csrf_token %}
-
-            <input type="text" name="qr_code"
-                   class="w-2/3 text-sm px-3 py-2 rounded-lg bg-black/30 border border-gray-600 text-white"
-                   placeholder="Enter QR Code">
-
-            <button class="w-1/2 bg-indigo-500 hover:bg-indigo-600 py-2 rounded-lg text-white font-medium shadow">
-                Submit
-            </button>
-        </form>
     </div>
 
     <!-- Hidden Auto Submit Form -->
@@ -183,33 +160,6 @@ document.getElementById("switch-camera").onclick = () => {
     currentCam = (currentCam + 1) % cameras.length;
     stop().then(() => setTimeout(start, 300));
 };
-
-// Toggle manual / scanner
-toggleBtn.onclick = () => {
-    if (manualCard.classList.contains("hidden")) {
-        manualCard.classList.remove("hidden");
-        scannerCard.classList.add("hidden");
-        toggleBtn.textContent = "Back to Scanner";
-        stop();
-    } else {
-        scannerCard.classList.remove("hidden");
-        manualCard.classList.add("hidden");
-        toggleBtn.textContent = "Enter QR Manually";
-        start();
-    }
-};
-
-// Manual QR submit
-document.getElementById("manual-form").addEventListener("submit", (event) => {
-    event.preventDefault();
-    const qrInput = document.querySelector('#manual-form input[name="qr_code"]').value.trim();
-    if (!qrInput) {
-        alert("Please enter a QR code");
-        return;
-    }
-    showConfirmation(qrInput);
-    stop();
-});
 
 // Auto start scanner on load
 window.onload = () => setTimeout(start, 500);

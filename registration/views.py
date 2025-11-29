@@ -20,6 +20,13 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from .models import PreRegistration
+import csv
+from django.http import HttpResponse
+from django.contrib.auth.decorators import login_required
+from django.db.models import Count
+from django.shortcuts import render
+from registration.models import Participant
+
 
 
 
@@ -194,6 +201,56 @@ def home(request):
         return render(request, 'index.html', context)
 
 
+
+
+
+@login_required
+def admin_reports(request):
+    if not request.user.is_superuser:
+        return render(request, login)
+
+    # Summary counts
+    total_regist = Participant.objects.count()
+    qr_regist = Participant.objects.filter(mode='qr').count()
+    onspot_regist = Participant.objects.filter(mode='onspot').count()
+
+    # Full participant list
+    participants = Participant.objects.all().order_by('-id')
+
+    # CSV Export
+    if 'export' in request.GET:
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="participants.csv"'
+
+        writer = csv.writer(response)
+        writer.writerow([
+            'ID', 'Name', 'Email', 'Contact', 'QR Code', 'Mode',
+            'Organisation', 'Country'
+        ])
+
+        for p in participants:
+            writer.writerow([
+                p.id, p.name, p.email, p.contact, p.qr_code, p.mode,
+                p.organisation, p.country
+            ])
+
+        return response
+
+    context = {
+        'is_admin': True,
+        'total_regist': total_regist,
+        'qr_regist': qr_regist,
+        'onspot_regist': onspot_regist,
+        'participants': participants,
+    }
+
+    return render(request, 'admin_report.html', context)
+
+
+
+
+
+
 # ----------------------------
 # Onspot Registration View
 # ----------------------------
@@ -298,7 +355,7 @@ def qr_register(request):
         # Prevent duplicate QR scan
         if Participant.objects.filter(email=pre.email).exists():
             messages.warning(request, f"{pre.name} already registered!")
-            return redirect("onspot")
+            return redirect("qr")
 
 
         
@@ -326,6 +383,7 @@ def qr_register(request):
             registered_by=request.user,
             registration_desk=desk,
             mode="qr",
+            qr_code=qr_code,
         )
 
         messages.success(request, f"Welcome {pre.name}! Registration completed.")
